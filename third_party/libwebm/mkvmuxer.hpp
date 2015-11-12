@@ -330,6 +330,36 @@ class ContentEncoding {
 };
 
 ///////////////////////////////////////////////////////////////
+// Colour element
+// Elements used to describe the color characteristics of the video stream.
+class Colour {
+ public:
+  Colour();
+
+  // Returns the size in bytes for the ContentEncoding element.
+  uint64 Size() const;
+
+  // Writes out the ContentEncoding element to |writer|. Returns true on
+  // success.
+  bool Write(IMkvWriter* writer) const;
+
+ private:
+  uint64 colour_format_;
+  uint64 bits_per_channel_;
+  uint64 chroma_subsampling_;
+  uint64 colour_range_;
+  uint64 eotf_;
+  uint64 maxcll_;
+  uint64 maxfall_;
+  float mastering_[10];
+
+  uint64 Size_() const;
+  uint64 MasteringSize_() const;
+
+  LIBWEBM_DISALLOW_COPY_AND_ASSIGN(Colour);
+};
+
+///////////////////////////////////////////////////////////////
 // Track element.
 class Track {
  public:
@@ -487,6 +517,8 @@ class VideoTrack : public Track {
   uint64 stereo_mode_;
   uint64 alpha_mode_;
   uint64 width_;
+
+  Colour* colour_;
 
   LIBWEBM_DISALLOW_COPY_AND_ASSIGN(VideoTrack);
 };

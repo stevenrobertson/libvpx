@@ -552,6 +552,155 @@ uint64 ContentEncoding::EncryptionSize() const {
 
 ///////////////////////////////////////////////////////////////
 //
+// Colour Class
+
+Colour::Colour()
+    : colour_format_(100),
+      bits_per_channel_(100),
+      chroma_subsampling_(100),
+      colour_range_(100),
+      eotf_(100),
+      maxcll_(0),
+      maxfall_(0) {
+    mastering_[0] = -1;
+    FILE* f = fopen("/tmp/metadata.txt", "r");
+    fscanf(f, " colour_format=%llu", &colour_format_);
+    fscanf(f, " bits_per_channel=%llu", &bits_per_channel_);
+    fscanf(f, " chroma_subsampling=%llu", &chroma_subsampling_);
+    fscanf(f, " colour_range=%llu", &colour_range_);
+    fscanf(f, " eotf=%llu", &eotf_);
+    fscanf(f, " maxcll=%llu", &maxcll_);
+    fscanf(f, " maxfall=%llu", &maxfall_);
+    fscanf(f, " mastering=%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+            mastering_,
+            mastering_ + 1,
+            mastering_ + 2,
+            mastering_ + 3,
+            mastering_ + 4,
+            mastering_ + 5,
+            mastering_ + 6,
+            mastering_ + 7,
+            mastering_ + 8,
+            mastering_ + 9);
+   printf("got mastering metadata:\n\t"
+           "colour_format=%llu\n\t"
+           "bits_per_channel=%llu\n\t"
+           "chroma_subsampling=%llu\n\t"
+           "colour_range=%llu\n\t"
+           "eotf=%llu\n\t"
+           "maxcll=%llu maxfall=%llu\n\t"
+           "mastering[0]=%f mastering[9]=%f\n",
+           colour_format_, bits_per_channel_, chroma_subsampling_,
+           colour_range_, eotf_, maxcll_, maxfall_,
+           mastering_[0], mastering_[9]);
+}
+
+uint64 Colour::Size() const {
+    uint64 size = Size_();
+    if (size > 0) {
+        size += EbmlMasterElementSize(kMkvColour, size);
+    }
+    return size;
+}
+
+uint64 Colour::Size_() const {
+    uint64 encoding_size = 0;
+    if (colour_format_ < 100) encoding_size += EbmlElementSize(
+            kMkvColourFormat, colour_format_);
+    if (bits_per_channel_ < 100) encoding_size += EbmlElementSize(
+            kMkvBitsPerChannel, bits_per_channel_);
+    if (chroma_subsampling_ < 100) encoding_size += EbmlElementSize(
+            kMkvChromaSubsampling, chroma_subsampling_);
+    if (colour_range_ < 100) encoding_size += EbmlElementSize(
+            kMkvColourRange, colour_range_);
+    if (eotf_ < 100) encoding_size += EbmlElementSize(
+            kMkvElectroOpticalTF, eotf_);
+    if (maxcll_ > 0) encoding_size += EbmlElementSize(
+            kMkvMaxCLL, maxcll_);
+    if (maxfall_ > 0) encoding_size += EbmlElementSize(
+            kMkvMaxFALL, maxfall_);
+    uint64 mastering_encoding_size = MasteringSize_();
+    if (mastering_encoding_size > 0) {
+        encoding_size +=
+            EbmlMasterElementSize(kMkvMasteringMetadata,
+                    mastering_encoding_size) +
+            mastering_encoding_size;
+    }
+    return encoding_size;
+}
+
+uint64 Colour::MasteringSize_() const {
+    uint64 mastering_encoding_size = 0;
+    if (mastering_[0] >= 0) {
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryRChromaticityX, mastering_[0]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryRChromaticityY, mastering_[1]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryGChromaticityX, mastering_[2]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryGChromaticityY, mastering_[3]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryBChromaticityX, mastering_[4]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvPrimaryBChromaticityY, mastering_[5]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvWhitePointChromaticityX, mastering_[6]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvWhitePointChromaticityY, mastering_[7]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvLuminanceMax, mastering_[8]);
+        mastering_encoding_size += EbmlElementSize(
+                kMkvLuminanceMin, mastering_[9]);
+    }
+    return mastering_encoding_size;
+}
+
+bool Colour::Write(IMkvWriter* writer) const {
+    uint64 payload_size = Size_();
+    if (payload_size == 0) return true;
+
+    if (!WriteEbmlMasterElement(writer, kMkvColour, payload_size)) {
+        return false;
+    }
+
+    if (colour_format_ < 100)
+        WriteEbmlElement(writer, kMkvColourFormat, colour_format_);
+    if (bits_per_channel_ < 100)
+        WriteEbmlElement(writer, kMkvBitsPerChannel, bits_per_channel_);
+    if (chroma_subsampling_ < 100)
+        WriteEbmlElement(writer, kMkvChromaSubsampling, chroma_subsampling_);
+    if (colour_range_ < 100)
+        WriteEbmlElement(writer, kMkvColourRange, colour_range_);
+    if (eotf_ < 100)
+        WriteEbmlElement(writer, kMkvElectroOpticalTF, eotf_);
+    if (maxcll_ > 0)
+        WriteEbmlElement(writer, kMkvMaxCLL, maxcll_);
+    if (maxfall_ > 0)
+        WriteEbmlElement(writer, kMkvMaxFALL, maxfall_);
+
+    uint64 mastering_size = MasteringSize_();
+    if (mastering_size == 0) return true;
+
+    if (!WriteEbmlMasterElement(writer, kMkvMasteringMetadata, mastering_size)) {
+        return false;
+    }
+    WriteEbmlElement(writer, kMkvPrimaryRChromaticityX, mastering_[0]);
+    WriteEbmlElement(writer, kMkvPrimaryRChromaticityY, mastering_[1]);
+    WriteEbmlElement(writer, kMkvPrimaryGChromaticityX, mastering_[2]);
+    WriteEbmlElement(writer, kMkvPrimaryGChromaticityY, mastering_[3]);
+    WriteEbmlElement(writer, kMkvPrimaryBChromaticityX, mastering_[4]);
+    WriteEbmlElement(writer, kMkvPrimaryBChromaticityY, mastering_[5]);
+    WriteEbmlElement(writer, kMkvWhitePointChromaticityX, mastering_[6]);
+    WriteEbmlElement(writer, kMkvWhitePointChromaticityY, mastering_[7]);
+    WriteEbmlElement(writer, kMkvLuminanceMax, mastering_[8]);
+    WriteEbmlElement(writer, kMkvLuminanceMin, mastering_[9]);
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////
+//
 // Track Class
 
 Track::Track(unsigned int* seed)
@@ -858,9 +1007,13 @@ VideoTrack::VideoTrack(unsigned int* seed)
       height_(0),
       stereo_mode_(0),
       alpha_mode_(0),
-      width_(0) {}
+      width_(0) {
+    colour_ = new Colour();
+}
 
-VideoTrack::~VideoTrack() {}
+VideoTrack::~VideoTrack() {
+    delete colour_;
+}
 
 bool VideoTrack::SetStereoMode(uint64 stereo_mode) {
   if (stereo_mode != kMono && stereo_mode != kSideBySideLeftIsFirst &&
@@ -946,6 +1099,10 @@ bool VideoTrack::Write(IMkvWriter* writer) const {
     }
   }
 
+  if (!colour_->Write(writer)) {
+      return false;
+  }
+
   const int64 stop_position = writer->Position();
   if (stop_position < 0 ||
       stop_position - payload_position != static_cast<int64>(size)) {
@@ -976,6 +1133,7 @@ uint64 VideoTrack::VideoPayloadSize() const {
     size += EbmlElementSize(kMkvAlphaMode, alpha_mode_);
   if (frame_rate_ > 0.0)
     size += EbmlElementSize(kMkvFrameRate, static_cast<float>(frame_rate_));
+  size += colour_->Size();
 
   return size;
 }

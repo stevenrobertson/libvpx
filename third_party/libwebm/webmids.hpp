@@ -147,7 +147,28 @@ enum MkvId {
   kMkvTag = 0x7373,
   kMkvSimpleTag = 0x67C8,
   kMkvTagName = 0x45A3,
-  kMkvTagString = 0x4487
+  kMkvTagString = 0x4487,
+
+  // HDR stuff
+  kMkvColour = 0x55A0,
+  kMkvColourFormat = 0x55A1,
+  kMkvBitsPerChannel = 0x55A2,
+  kMkvChromaSubsampling = 0x55A3,
+  kMkvColourRange = 0x55A4,
+  kMkvElectroOpticalTF = 0x55A6,
+  kMkvMaxCLL = 0x55A7,
+  kMkvMaxFALL = 0x55A8,
+  kMkvMasteringMetadata = 0x55B0,
+  kMkvPrimaryRChromaticityX = 0x55B1,
+  kMkvPrimaryRChromaticityY = 0x55B2,
+  kMkvPrimaryGChromaticityX = 0x55B3,
+  kMkvPrimaryGChromaticityY = 0x55B4,
+  kMkvPrimaryBChromaticityX = 0x55B5,
+  kMkvPrimaryBChromaticityY = 0x55B6,
+  kMkvWhitePointChromaticityX = 0x55B7,
+  kMkvWhitePointChromaticityY = 0x55B8,
+  kMkvLuminanceMax = 0x55B9,
+  kMkvLuminanceMin = 0x55BA
 };
 
 }  // end namespace mkvmuxer
